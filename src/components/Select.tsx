@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from './select.module.css'
 
 export type SelectOption = {
@@ -26,6 +26,7 @@ type SelectProps = {
 export function Select({multiple, value, onChange, options}: SelectProps){
     const [isOpen, setIsOpen] = useState(false)
     const [highlightedIndex, setHightLightedIndex] = useState(0)
+    const containerRef = useRef<HTMLDivElement>(null)
 
     function clearOptions (){
         
@@ -50,8 +51,43 @@ export function Select({multiple, value, onChange, options}: SelectProps){
     useEffect(() => {
         if(isOpen) setHightLightedIndex(0)
     }, [isOpen])
+
+    useEffect(() => {
+        const handler = (e:KeyboardEvent) => {
+            if(e.target != containerRef.current) return
+            switch(e.code){
+               case "Enter":
+               case "Space":
+                    setIsOpen(prev => !prev) 
+                    if(isOpen) selectOption(options[highlightedIndex])
+                    break
+               case "ArrowUp":
+               case "ArrowDown":{
+                    if(!isOpen){
+                        setIsOpen(true)
+                        break
+                    } 
+                    const newValue = highlightedIndex + (e.code === "ArrowDown" ? 1 : -1) 
+                    if(newValue >=0 && newValue < options.length){
+                        setHightLightedIndex(newValue)
+                    }
+                    break
+                }
+               case "Escape":
+                    setIsOpen(false) 
+                    break
+            }
+        }
+        containerRef.current?.addEventListener('keydown', handler)
+
+        return ()=> {
+            containerRef.current?.removeEventListener('keydown', handler)
+        }
+    },[isOpen, highlightedIndex, options])
+
     return (
         <div 
+            ref={containerRef}
             onBlur={() => setIsOpen(false)}
             onClick={() => {setIsOpen(prev => !prev)}}
             tabIndex={0}
